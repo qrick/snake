@@ -29,8 +29,8 @@
 #include <math.h>
 #include <errno.h>
 
-#define SIZEX 20
-#define SIZEY 50
+#define SIZEX 50
+#define SIZEY 20
 
 static struct termios stored_settings;
 
@@ -43,7 +43,8 @@ void set_keypress(void)
 	new_settings = stored_settings;
 
 	/* Disable canonical mode, and set buffer size to 1 byte */
-	new_settings.c_lflag &= ( ICANON | ECHO );
+	new_settings.c_lflag &= (~ICANON);
+	new_settings.c_lflag &= (~ECHO);
 	new_settings.c_cc[VTIME] = 0;
 	new_settings.c_cc[VMIN] = 1;
 
@@ -143,23 +144,16 @@ int main(int argc, char **argv)
 	
 	char key;
 	
-	struct queue Q;
-	init_queue(&Q);
-	
 	fd_set rfds;
 	struct timeval tv;
-	int retval;
-	/* Watch stdin (fd 0) to see when it has input. */
-	FD_ZERO(&rfds);
-	FD_SET(0, &rfds);
-
-	tv.tv_sec = 0;
-	tv.tv_usec = 50000;	
+	
+	struct queue Q;
+	init_queue(&Q);
 
 	set_keypress();
 
-	for (int y = 0; i <= SIZEY - 1; i++)
-	for (int x = 0; j <= SIZEX - 1; j++)
+	for (int y = 0; y <= SIZEY - 1; y++)
+	for (int x = 0; x <= SIZEX - 1; x++)
 		ground[y][x] = 0;
 
 	srand(time(0));
@@ -172,9 +166,17 @@ int main(int argc, char **argv)
 	while(notkill)
 	{		
 		clrScr();
+		
+		/* Watch stdin (fd 0) to see when it has input. */
+		FD_ZERO(&rfds);
+		FD_SET(0, &rfds);
+
+		tv.tv_sec = 0;
+		tv.tv_usec = 100000;
+
 		printf(" * W - up\n * A - left\n * D - right\n * S - down\n"
 				" * Q - exit\n");
-		printLine(SIZEY - 1);
+		printLine(SIZEX - 1);
 		for (int i = 0; i <= SIZEY - 1; i++)
 		{
 			putchar('|');
@@ -192,10 +194,9 @@ int main(int argc, char **argv)
 			putchar('|');
 			putchar('\n');
 		}
-		printLine(SIZEY - 1);
+		printLine(SIZEX - 1);
 		
-		retval = select(1, &rfds, NULL, NULL, &tv);
-		if(retval)
+		if(select(1, &rfds, NULL, NULL, &tv))
 			key = getc(stdin);
 		/*
 		 * 0 - left
@@ -244,7 +245,7 @@ int main(int argc, char **argv)
 		enqueue(&Q, curX, curY);
 		ground[curY][curX] = 1;
 		count++;
-		usleep(50000);
+		usleep(100000);
 	}
 	reset_keypress();
 	return 0;
