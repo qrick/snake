@@ -19,44 +19,19 @@
  *	  MA 02110-1301, USA.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <termios.h>
 #include <unistd.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <string.h>
 #include <math.h>
-#include <errno.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
 
-#define SIZEX 50
-#define SIZEY 20
+#include "queue.h"
+#include "input.h"
 
-static struct termios stored_settings;
+#define SIZEX 30
+#define SIZEY 10
 
-void set_keypress(void)
-{
-	struct termios new_settings;
 
-	tcgetattr(0,&stored_settings);
-
-	new_settings = stored_settings;
-
-	/* Disable canonical mode, and set buffer size to 1 byte */
-	new_settings.c_lflag &= (~ICANON);
-	new_settings.c_lflag &= (~ECHO);
-	new_settings.c_cc[VTIME] = 0;
-	new_settings.c_cc[VMIN] = 1;
-
-	tcsetattr(0,TCSANOW,&new_settings);
-	return;
-}
-
-void reset_keypress(void)
-{
-	tcsetattr(0,TCSANOW,&stored_settings);
-	return;
-}
 
 void printLine(int length)
 {	
@@ -71,67 +46,6 @@ void clrScr(void)
 {
 	for (int i = 0; i < 30; i++)
 		putchar('\n');
-}
-
-struct queue_node
-{
-	struct queue_node *next;	
-	int x;
-	int y;
-};
- 
-struct queue
-{
-	struct queue_node *first;
-	struct queue_node *last;
-};
- 
-int enqueue(struct queue *q, const int x, const int y)
-{
-	struct queue_node *node = malloc(sizeof(struct queue_node));
-	if (node == NULL) {
-		errno = ENOMEM;
-		return 1;
-	}
-	node->x = x;
-	node->y = y;
-	if (q->first == NULL)
-		q->first = q->last = node;
-	else {
-		q->last->next = node;
-		q->last = node;
-	}
-	node->next = NULL;
-	return 0;
-}
- 
-int dequeue(struct queue *q, int *x, int *y)
-{
-	if (!q->first) {
-		*x = 0;
-		*y = 0;
-		return 1;
-	}
-	*x = q->first->x;
-	*y = q->first->y;
-	struct queue_node *tmp = q->first;
-	if (q->first == q->last)
-		q->first = q->last = NULL;
-	else
-		q->first = q->first->next;
- 
-	free(tmp);
-	return 0;
-}
- 
-void init_queue(struct queue *q)
-{
-	q->first = q->last = NULL;
-}
- 
-int queue_empty_p(const struct queue *q)
-{
-	return q->first == NULL;
 }
 
 int main(int argc, char **argv)
